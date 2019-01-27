@@ -10,7 +10,7 @@
 
 #include "RFID.h"
 
-void sendz(int c)
+void sendz(uint8_t c)
 {
 	while(bit_is_clear(UCSRA,UDRE));// doi den khi bit UDRE = 1
 	UDR = c;
@@ -44,24 +44,57 @@ int main(void)
 	UBRRL = 103;
 	UCSRC =	(1<<URSEL)|(1 << UCSZ1) | (1 << UCSZ0); // k chon UBRRch va chon mode 8bit
 	UCSRB = (1 << TXEN); //EN rx,tx,ngat
-	
+	DDRA = 0xff;
 	abc.begin();
 	_SendString("START");
+	int count = 0;
 	while(1)
 	{
 		uint8_t status;
 		uint8_t data[MAX_LEN];
 		
 		status = abc.requestTag(MF1_REQIDL, data);
-		
+		//sendz(status);
 		if (status == MI_OK) {
 
 			status = abc.antiCollision(data);
 			
 			for (int i = 0; i < 5; i++) {
 				sendz(data[i]);
+						
+			switch(data[i])
+			{
+				case 0x85:
+				count++;
+				break;
+				
+				case 0xA8:
+				count++;
+				break;
+				
+				case 0x13:
+				count++;
+				break;
+				
+				case 0xAB:
+				count++;
+				break;
+				
+				case 0x95:
+				count++;
+				break;
 			}
-
+		}
+			if(count == 5)
+			{
+				sbi(PORTA,0);
+				count=0;
+			}
+			else
+			{
+				 count = 0;
+				 cbi(PORTA,0);
+			}
 			abc.selectTag(data);
 
 			// Stop the tag and get ready for reading a new tag.
